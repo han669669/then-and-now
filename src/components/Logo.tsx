@@ -1,9 +1,15 @@
+import { useId } from 'react';
+
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
 export function Logo({ size = 'md', className = '' }: LogoProps) {
+  const uniqueId = useId();
+  const logoGradientId = `logoGradient-${uniqueId}`;
+  const arrowGradientId = `arrowGradient-${uniqueId}`;
+  
   const sizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
@@ -20,11 +26,11 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
       >
         {/* Background circle with gradient */}
         <defs>
-          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={logoGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#FB923C" />
             <stop offset="100%" stopColor="#F97316" />
           </linearGradient>
-          <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id={arrowGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#FFFFFF" />
             <stop offset="100%" stopColor="#F3F4F6" />
           </linearGradient>
@@ -35,7 +41,7 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
           cx="20"
           cy="20"
           r="18"
-          fill="url(#logoGradient)"
+          fill={`url(#${logoGradientId})`}
           className="drop-shadow-lg"
         />
         
@@ -68,7 +74,7 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
         {/* Arrow pointing right */}
         <path
           d="M 16 17.5 L 23 17.5 L 23 16 L 27 20 L 23 24 L 23 22.5 L 16 22.5 Z"
-          fill="url(#arrowGradient)"
+          fill={`url(#${arrowGradientId})`}
           className="drop-shadow-sm"
         />
         

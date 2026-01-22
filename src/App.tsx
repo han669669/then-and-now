@@ -23,11 +23,11 @@ export function App() {
     setSettings(prev => ({ ...prev, ...updates }));
   };
 
-  const handleUpload = (id: 'then' | 'now', file: File) => {
+  const handleUpload = (id: 'then' | 'now', file: File, isSample = false) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      updateImage(id, { file, dataUrl, xPos: 50, yPos: 50, zoom: 1.0 });
+      updateImage(id, { file, dataUrl, xPos: 50, yPos: 50, zoom: 1.0 }, isSample);
     };
     reader.readAsDataURL(file);
   };
@@ -44,9 +44,9 @@ export function App() {
       const afterBlob = await afterResponse.blob();
       const afterFile = new File([afterBlob], 'sample-after.jpg', { type: 'image/jpeg' });
       
-      // Update both images
-      handleUpload('then', beforeFile);
-      handleUpload('now', afterFile);
+      // Update both images as samples (won't overwrite user images in localStorage)
+      handleUpload('then', beforeFile, true);
+      handleUpload('now', afterFile, true);
     } catch (error) {
       console.error('Failed to load sample images:', error);
     }

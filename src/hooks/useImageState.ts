@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { ImageData, ImageState } from '@/types/image';
 import { useLocalStorage } from './useLocalStorage';
 
@@ -17,29 +17,52 @@ export function useImageState() {
     now: { ...initialImageData, id: 'now' },
   });
 
-  const updateImage = useCallback((id: 'then' | 'now', updates: Partial<ImageData>) => {
+  // Store user images separately - these are the "source of truth"
+  const [userImages, setUserImages] = useLocalStorage<ImageState | null>('then-and-now-user-images', null);
+
+  // On component mount, restore user images if they exist
+  useEffect(() => {
+    if (userImages && (userImages.then.dataUrl || userImages.now.dataUrl)) {
+      setImageState(userImages);
+    }
+  }, []); // Only run on mount
+
+  const updateImage = useCallback((id: 'then' | 'now', updates: Partial<ImageData>, isSample = false) => {
+    const newImageData = { ...imageState[id], ...updates };
+    
     setImageState(prev => ({
       ...prev,
-      [id]: { ...prev[id], ...updates },
+      [id]: newImageData,
     }));
-  }, [setImageState]);
+
+    // If this is a user image (not sample), save it as the persistent user image
+    if (!isSample && updates.file) {
+      setUserImages(prev => ({
+        then: prev?.then || { ...initialImageData, id: 'then' },
+        now: prev?.now || { ...initialImageData, id: 'now' },
+        [id]: newImageData,
+      }));
+    }
+  }, [imageState, setImageState, setUserImages]);
 
   const removeImage = useCallback((id: 'then' | 'now') => {
+    const resetData = { ...initialImageData, id };
+    
     setImageState(prev => ({
       ...prev,
-      [id]: { ...initialImageData, id },
+      [id]: resetData,
     }));
-  }, [setImageState]);
 
-  const loadSampleImages = useCallback(async () => {
-    // Will be implemented with sample image loading
-    console.log('Sample images not yet implemented');
-  }, []);
+    // Also remove from user images
+    setUserImages(prev => prev ? ({
+      ...prev,
+      [id]: resetData,
+    }) : null);
+  }, [setImageState, setUserImages]);
 
   return {
     imageState,
     updateImage,
     removeImage,
-    loadSampleImages,
   };
 }

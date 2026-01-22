@@ -1,18 +1,18 @@
 # Development Log - Then & Now
 
-**Project**: Then & Now - Professional Before & After Comparison Tool  
+**Project**: Then & Now - Advanced Before & After Comparison Tool  
 **Duration**: January 22, 2026 - January 22, 2026  
-**Total Time**: ~12 hours  
+**Total Time**: ~12.5 hours  
 
 ## Overview
 
-Building a browser-based utility for creating professional "Before & After" comparison images. The tool enables users to upload two images, interactively adjust their positioning and scale, customize visual elements (aspect ratio, labels, divider arrows), and export high-resolution composite PNG files—all processed client-side for maximum privacy.
+Building a browser-based utility for creating advanced "Before & After" comparison images. The tool enables users to upload two images, interactively adjust their positioning and scale, customize visual elements (aspect ratio, labels, divider arrows), and export high-resolution composite PNG files—all processed client-side for maximum privacy.
 
 Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning and systematic implementation approach. The project leverages modern web technologies (React 19, Bun, Vite, Canvas API) to deliver a privacy-focused, high-performance user experience.
 
 ---
 
-## Day 1 (January 22, 2026) - Complete Implementation [12h]
+## Day 1 (January 22, 2026) - Complete Implementation [12.5h]
 
 ### Session 1 (15:30-15:45) - Initial Setup [0.25h]
 - **Activity**: Cloned hackathon template repository and initialized project
@@ -82,6 +82,24 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
   - Debounced localStorage updates
   - File size limits (10MB per image)
 - **Kiro Usage**: Systematic execution using `@execute` with continuous code review
+
+### Session 7 (19:00-19:30) - Post-Launch Fixes [0.5h]
+- **Activity**: Fixed critical user experience issues discovered during testing
+- **Issues Resolved**:
+  - ✅ Fixed keyboard shortcut double-trigger bug
+  - ✅ Enhanced arrow designs based on user feedback
+  - ✅ Improved auto aspect ratio with smart cropping algorithm
+  - ✅ Fixed dropdown selection bug by replacing Select with Dropdown
+  - ✅ Added custom logo with orange gradient branding
+  - ✅ Fixed accessibility issues (form labels, ARIA attributes)
+  - ✅ Fixed export/preview mismatch for vertical layouts
+  - ✅ **Critical Fix**: Preserved user images when loading samples
+- **Sample Images Persistence Fix**:
+  - **Problem**: Sample images would overwrite user images in localStorage
+  - **Solution**: Separate storage for user images vs current display state
+  - **Implementation**: Auto-restore user images on page refresh
+  - **Result**: Users can safely try samples without losing their work
+- **Kiro Usage**: Used `@execute` for systematic bug fixes and testing
 
 ---
 
@@ -173,11 +191,11 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
 
 | Category | Hours | Percentage |
 |----------|-------|------------|
-| Project Setup | 0.25h | 2.1% |
-| Planning & Documentation | 1.5h | 12.5% |
-| Custom Tooling | 0.25h | 2.1% |
-| Implementation | 10.5h | 87.5% |
-| **Total** | **12h** | **100%** |
+| Project Setup | 0.25h | 2.0% |
+| Planning & Documentation | 1.5h | 12.0% |
+| Custom Tooling | 0.25h | 2.0% |
+| Implementation | 10.5h | 84.0% |
+| **Total** | **12.5h** | **100%** |
 
 ---
 
