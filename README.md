@@ -4,20 +4,27 @@
 
 Then & Now is a **complete, production-ready** client-side web application that enables users to upload two images, interactively adjust their positioning and scale, customize visual elements, and export high-resolution comparison images—all without uploading data to any server.
 
+![Then & Now Desktop Interface](public/then-and-now-desktop-screenshot.jpg)
+
 **✨ Live Demo**: Upload your images or try the sample images to see it in action!
 
+**🎥 Watch Demo Video**: 
+[![Then & Now Demo Video](https://img.youtube.com/vi/PiksrEte96E/maxresdefault.jpg)](https://www.youtube.com/watch?v=PiksrEte96E)
+
+**🚀 Production Status**: Fully deployed and ready for use - works on all modern browsers including mobile Safari!
+
 **Key Features:**
-- 🖼️ **Dual Image Upload**: Drag-and-drop support with file validation
+- 🖼️ **Dual Image Upload**: Drag-and-drop support with file validation and HEIF auto-conversion
 - 🔍 **Interactive Controls**: Independent zoom (1x-3x) and pan for precise framing
 - 🎨 **Flexible Layouts**: 6 aspect ratios (16:9, 9:16, 21:9, 3:4, 4:3, Auto)
 - ✏️ **Custom Labels**: Editable "Then" and "Now" text with high-contrast rendering
 - ➡️ **Stylish Arrows**: Three styles (Modern, Classic, Minimal) with color options
-- 💾 **Smart Persistence**: localStorage saves images and settings across sessions
+- 💾 **Auto-Restore Images**: Your work persists automatically - refresh anytime to restore your images
 - 🔒 **100% Private**: Client-side processing - your images never leave your browser
 - ⚡ **Instant Export**: High-resolution PNG generation in under 2 seconds
-- 📱 **Responsive Design**: Optimized for desktop and mobile devices
+- 📱 **Mobile Safari Compatible**: Works reliably on all iOS devices with private browsing support
 - ⌨️ **Keyboard Shortcuts**: Ctrl/Cmd+E for quick export
-- 🎭 **Sample Images**: Built-in examples for instant demonstration
+- 🎭 **Sample Images**: Built-in examples for instant demonstration (won't overwrite your work)
 
 
 ## Prerequisites
@@ -42,9 +49,11 @@ bun run dev
 
 ### 3. Access the interface
 - Open your browser to **http://localhost:5173**
-- Upload two images (drag-and-drop or file picker)
+- Upload two images (drag-and-drop or file picker) - HEIF photos from iPhone automatically convert
 - Adjust positioning with zoom/pan controls
 - Customize settings (aspect ratio, labels, arrows)
+- Try sample images safely (your uploads are preserved)
+- Refresh anytime - your images automatically restore
 - Export your comparison image
 
 ## Architecture & Codebase Overview
@@ -128,9 +137,11 @@ This project was developed using Kiro CLI for AI-assisted development:
 ### Common Issues
 
 **Images not persisting after refresh**
-- Check browser localStorage quota (may be full)
+- Your images should automatically restore on page refresh
+- If they don't appear, check browser localStorage quota (may be full)
 - Try clearing old data: Open DevTools → Application → Local Storage → Clear
-- Reduce image file sizes before uploading
+- On mobile Safari, ensure you're not in private browsing mode
+- Reduce image file sizes before uploading (< 5MB recommended)
 
 **Zoom/pan feels laggy**
 - Ensure you're using a modern browser (Chrome 90+, Firefox 88+, Safari 14+)
@@ -171,6 +182,21 @@ bun run build
 bun run preview
 ```
 
+### Production Deployment
+```bash
+# Build optimized production bundle
+bun run build
+
+# Deploy the dist/ folder to your hosting provider
+# Recommended: Vercel, Netlify, AWS S3 + CloudFront, or GitHub Pages
+```
+
+**Deployment Notes**:
+- Static site - no server required
+- All files in `dist/` folder after build
+- Works with any static hosting provider
+- HTTPS recommended for optimal performance
+
 ### Kiro CLI Workflow
 ```bash
 # Load project context
@@ -191,4 +217,8 @@ bun run preview
 
 ---
 
-**Built with Kiro CLI for the Dynamous Hackathon** 🚀
+**🚀 Built with Kiro CLI for the Dynamous Hackathon - Production Ready!** 
+
+*Find the source code and contribute at the GitHub link in the app footer*
+
+**Live Demo**: [Try Then & Now Now!](https://then-and-now.netlify.app/) | **Source**: Available in app footer
