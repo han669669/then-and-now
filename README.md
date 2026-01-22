@@ -1,4 +1,4 @@
-# Then & Now - Professional Before & After Comparison Tool
+# Then & Now - Advanced Before & After Comparison Tool
 
 🎨 **Create stunning before/after comparison images in under 2 minutes** - A privacy-focused, browser-based tool for content creators, photographers, and marketers.
 
@@ -11,7 +11,7 @@ Then & Now is a **complete, production-ready** client-side web application that 
 - 🔍 **Interactive Controls**: Independent zoom (1x-3x) and pan for precise framing
 - 🎨 **Flexible Layouts**: 6 aspect ratios (16:9, 9:16, 21:9, 3:4, 4:3, Auto)
 - ✏️ **Custom Labels**: Editable "Then" and "Now" text with high-contrast rendering
-- ➡️ **Professional Arrows**: Three styles (Modern, Classic, Minimal) with color options
+- ➡️ **Stylish Arrows**: Three styles (Modern, Classic, Minimal) with color options
 - 💾 **Smart Persistence**: localStorage saves images and settings across sessions
 - 🔒 **100% Private**: Client-side processing - your images never leave your browser
 - ⚡ **Instant Export**: High-resolution PNG generation in under 2 seconds
@@ -30,7 +30,7 @@ Then & Now is a **complete, production-ready** client-side web application that 
 
 ### 1. Clone and setup
 ```bash
-git clone https://github.com/yourusername/then-and-now
+git clone https://github.com/han669669/then-and-now
 cd then-and-now
 bun install
 ```
