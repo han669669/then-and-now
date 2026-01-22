@@ -2,7 +2,7 @@
 
 **Project**: Then & Now - Advanced Before & After Comparison Tool  
 **Duration**: January 22, 2026 - January 22, 2026  
-**Total Time**: ~12.5 hours  
+**Total Time**: ~13.0 hours  
 
 ## Overview
 
@@ -101,6 +101,28 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
   - **Result**: Users can safely try samples without losing their work
 - **Kiro Usage**: Used `@execute` for systematic bug fixes and testing
 
+### Session 8 (Current) - Mobile Safari localStorage Enhancements [0.5h]
+- **Activity**: Enhanced mobile Safari localStorage persistence and HEIF support
+- **Issues Addressed**:
+  - ✅ **Mobile Safari localStorage**: Improved persistence reliability on iOS devices
+  - ✅ **Private Browsing Detection**: Added fallback to memory storage when localStorage is disabled
+  - ✅ **Storage Quota Management**: Automatic cleanup when approaching storage limits (2MB threshold)
+  - ✅ **HEIF Image Support**: Dynamic import of heic2any converter for iPhone photos
+  - ✅ **User Image Preservation**: Enhanced logic to prevent sample images from overwriting user data
+  - ✅ **Restore Functionality**: Added "Restore My Images" button when samples are loaded
+- **Mobile Safari Specific Fixes**:
+  - **Problem**: localStorage may fail in private browsing mode or when quota is exceeded
+  - **Solution**: Multi-tier storage system (localStorage → memory storage → graceful degradation)
+  - **Implementation**: Enhanced storage utilities with private browsing detection
+  - **HEIF Support**: Dynamic loading of converter to avoid bundle bloat (1.3MB chunk)
+  - **Result**: Reliable persistence across all iOS Safari configurations
+- **Technical Improvements**:
+  - Enhanced `useImageState` hook with proper user image restoration
+  - Improved storage quota management with automatic cleanup
+  - Added comprehensive error handling for mobile storage edge cases
+  - Implemented memory storage fallback for private browsing mode
+- **Kiro Usage**: Systematic debugging and enhancement of mobile compatibility
+
 ---
 
 ## Technical Decisions & Rationale
@@ -191,11 +213,12 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
 
 | Category | Hours | Percentage |
 |----------|-------|------------|
-| Project Setup | 0.25h | 2.0% |
-| Planning & Documentation | 1.5h | 12.0% |
-| Custom Tooling | 0.25h | 2.0% |
-| Implementation | 10.5h | 84.0% |
-| **Total** | **12.5h** | **100%** |
+| Project Setup | 0.25h | 1.9% |
+| Planning & Documentation | 1.5h | 11.5% |
+| Custom Tooling | 0.25h | 1.9% |
+| Implementation | 10.5h | 80.8% |
+| Mobile Enhancements | 0.5h | 3.8% |
+| **Total** | **13.0h** | **100%** |
 
 ---
 

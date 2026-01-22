@@ -56,15 +56,16 @@ export function App() {
       const afterFile = new File([afterBlob], 'sample-after.jpg', { type: 'image/jpeg' });
       
       // Update both images as samples (won't overwrite user images in localStorage)
-      handleUpload('then', beforeFile, true);
-      handleUpload('now', afterFile, true);
+      await handleUpload('then', beforeFile, true);
+      await handleUpload('now', afterFile, true);
     } catch (error) {
       console.error('Failed to load sample images:', error);
+      alert('Failed to load sample images. Please try again.');
     }
   };
 
   const hasImages = imageState.then.dataUrl || imageState.now.dataUrl;
-  const showSampleImages = !imageState.then.dataUrl && !imageState.now.dataUrl;
+  const showSampleImages = !hasImages; // Show samples when no images are loaded
 
   return (
     <HeroUIProvider>

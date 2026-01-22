@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ImageData, ImageState } from '@/types/image';
 import { useLocalStorage } from './useLocalStorage';
+import { checkStorageQuota } from '@/utils/storage';
 
 const initialImageData: ImageData = {
   id: 'then',
@@ -19,17 +20,26 @@ export function useImageState() {
 
   // Store user images separately - these are the "source of truth"
   const [userImages, setUserImages] = useLocalStorage<ImageState | null>('then-and-now-user-images', null);
+  
+  // Track if we've already restored user images to prevent loops
+  const hasRestoredRef = useRef(false);
 
-  // On component mount, restore user images if they exist
+  // On component mount, ALWAYS restore user images if they exist
   useEffect(() => {
+    // Check storage quota on mobile devices
+    checkStorageQuota();
+    
+    // Always restore user images on page load/refresh if they exist
     if (userImages && (userImages.then.dataUrl || userImages.now.dataUrl)) {
       setImageState(userImages);
+      hasRestoredRef.current = true;
     }
-  }, []); // Only run on mount
+  }, []); // Only run on mount - this ensures user images are restored on every page refresh
 
   const updateImage = useCallback((id: 'then' | 'now', updates: Partial<ImageData>, isSample = false) => {
     const newImageData = { ...imageState[id], ...updates };
     
+    // Always update the current display state
     setImageState(prev => ({
       ...prev,
       [id]: newImageData,
@@ -37,13 +47,16 @@ export function useImageState() {
 
     // If this is a user image (not sample), save it as the persistent user image
     if (!isSample && updates.file) {
-      setUserImages(prev => ({
-        then: prev?.then || { ...initialImageData, id: 'then' },
-        now: prev?.now || { ...initialImageData, id: 'now' },
+      const newUserImages = {
+        then: userImages?.then || { ...initialImageData, id: 'then' },
+        now: userImages?.now || { ...initialImageData, id: 'now' },
         [id]: newImageData,
-      }));
+      };
+      
+      setUserImages(newUserImages);
+      hasRestoredRef.current = true; // Mark as having user data
     }
-  }, [imageState, setImageState, setUserImages]);
+  }, [imageState, setImageState, userImages, setUserImages]);
 
   const removeImage = useCallback((id: 'then' | 'now') => {
     const resetData = { ...initialImageData, id };
