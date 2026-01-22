@@ -5,6 +5,7 @@ import { ExportButton } from './components/ExportButton';
 import { Logo } from './components/Logo';
 import { useImageState } from './hooks/useImageState';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { processImageFile } from './utils/imageOptimization';
 import type { Settings } from './types/settings';
 import sampleBefore from './assets/sample-before.jpg';
 import sampleAfter from './assets/sample-after.jpg';
@@ -23,13 +24,23 @@ export function App() {
     setSettings(prev => ({ ...prev, ...updates }));
   };
 
-  const handleUpload = (id: 'then' | 'now', file: File, isSample = false) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      updateImage(id, { file, dataUrl, xPos: 50, yPos: 50, zoom: 1.0 }, isSample);
-    };
-    reader.readAsDataURL(file);
+  const handleUpload = async (id: 'then' | 'now', file: File, isSample = false) => {
+    try {
+      // Process image file (includes HEIF conversion and validation)
+      const { file: processedFile, dataUrl } = await processImageFile(file);
+      
+      updateImage(id, { 
+        file: processedFile, 
+        dataUrl, 
+        xPos: 50, 
+        yPos: 50, 
+        zoom: 1.0 
+      }, isSample);
+
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to upload image. Please try a different image.');
+    }
   };
 
   const handleLoadSamples = async () => {

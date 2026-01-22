@@ -216,7 +216,7 @@ export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: 
               <p className="text-gray-300 font-medium mb-1">
                 Click to upload {id === 'then' ? 'before' : 'after'} image
               </p>
-              <p className="text-gray-600 text-sm">PNG, JPG, WebP • Max 10MB</p>
+              <p className="text-gray-600 text-sm">PNG, JPG, WebP, HEIF • Auto-converts HEIF</p>
             </div>
           </div>
         </div>
