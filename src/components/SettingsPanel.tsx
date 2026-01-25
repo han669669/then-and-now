@@ -1,4 +1,7 @@
-import { Select, SelectItem, Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
+import { Select, SelectItem } from '@heroui/select';
+import { Input } from '@heroui/input';
+import { Button } from '@heroui/button';
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/dropdown';
 import { motion } from 'framer-motion';
 import { SampleImages } from './SampleImages';
 import type { Settings, AspectRatio, ArrowStyle, ArrowColor } from '@/types/settings';

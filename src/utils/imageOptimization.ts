@@ -1,6 +1,6 @@
 /**
  * Mobile-optimized image processing utilities
- * Handles HEIF conversion and format validation
+ * Handles HEIF conversion, format validation, and image resizing
  */
 
 export interface ImageOptimizationOptions {
@@ -36,6 +36,71 @@ export function isMobileDevice(): boolean {
  */
 export function getOptimizationOptions(): ImageOptimizationOptions {
   return isMobileDevice() ? DEFAULT_MOBILE_OPTIONS : DEFAULT_DESKTOP_OPTIONS;
+}
+
+/**
+ * Downscale image using canvas to reduce memory usage on mobile
+ * Returns a new Blob with the resized image
+ */
+export async function downscaleImage(
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality: number = 0.85
+): Promise<Blob> {
+  // Use createImageBitmap which respects EXIF orientation in modern browsers
+  // This fixes the issue where mobile photos appear rotated 90 degrees
+  const bitmap = await createImageBitmap(file);
+  
+  let { width, height } = bitmap;
+  
+  // Calculate new dimensions while maintaining aspect ratio
+  if (width > maxWidth || height > maxHeight) {
+    const ratio = Math.min(maxWidth / width, maxHeight / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  } else {
+    // Image is already small enough, return original as blob
+    bitmap.close();
+    return file;
+  }
+  
+  // Create canvas and draw resized image
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bitmap.close();
+    throw new Error('Failed to get canvas context');
+  }
+  
+  // Use high quality image smoothing
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  
+  // Preserve original format for PNG/WebP to maintain transparency
+  // Fall back to JPEG for other formats (including HEIC conversions)
+  const supportedFormats = ['image/png', 'image/webp'];
+  const outputFormat = supportedFormats.includes(file.type) ? file.type : 'image/jpeg';
+  
+  // Convert to blob
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob from canvas'));
+        }
+      },
+      outputFormat,
+      quality
+    );
+  });
 }
 
 /**
@@ -77,9 +142,72 @@ async function convertHEIFToJPEG(file: File): Promise<File> {
 }
 
 /**
- * Process image file with HEIF conversion support
+ * Process image file with HEIF conversion and mobile optimization
+ * Returns a Blob (for IndexedDB storage) and an object URL (for display)
  */
-export function processImageFile(file: File): Promise<{ file: File; dataUrl: string }> {
+export async function processImageFile(file: File): Promise<{ blob: Blob; objectUrl: string }> {
+  try {
+    let processedFile: File | Blob = file;
+
+    // Convert HEIF to JPEG if needed (loads converter dynamically)
+    if (isHEIFFormat(file)) {
+      processedFile = await convertHEIFToJPEG(file);
+    }
+
+    // Validate the processed file
+    const validation = validateImageFile(processedFile as File);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Downscale large images to reduce memory pressure on all devices
+    // (100MP+ images can crash even desktop browsers)
+    const options = getOptimizationOptions();
+    if (options.maxWidth && options.maxHeight) {
+      try {
+        // Check if image exceeds max dimensions before downscaling
+        const img = new Image();
+        const imageUrl = URL.createObjectURL(processedFile);
+        try {
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('Failed to load image for size check'));
+            img.src = imageUrl;
+          });
+          
+          // Only downscale if image exceeds limits
+          if (img.naturalWidth > options.maxWidth || img.naturalHeight > options.maxHeight) {
+            processedFile = await downscaleImage(
+              processedFile as File,
+              options.maxWidth,
+              options.maxHeight,
+              options.quality || 0.85
+            );
+          }
+        } finally {
+          URL.revokeObjectURL(imageUrl);
+        }
+      } catch (downscaleError) {
+        console.warn('Downscaling failed, using original:', downscaleError);
+        // Continue with original file if downscaling fails
+      }
+    }
+
+    // Create object URL for display (no base64!)
+    const objectUrl = URL.createObjectURL(processedFile);
+    
+    return { blob: processedFile, objectUrl };
+
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Legacy function for backwards compatibility - converts to data URL
+ * @deprecated Use processImageFile which returns objectUrl instead
+ */
+export function processImageFileToDataUrl(file: File): Promise<{ file: File; dataUrl: string }> {
   return new Promise(async (resolve, reject) => {
     try {
       let processedFile = file;
@@ -123,6 +251,7 @@ export function processImageFile(file: File): Promise<{ file: File; dataUrl: str
 
 /**
  * Validate image file before processing (after HEIF conversion)
+ * This is the single source of validation - limits are device-aware via getOptimizationOptions()
  */
 export function validateImageFile(file: File): { valid: boolean; error?: string } {
   // Check file type

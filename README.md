@@ -62,7 +62,8 @@ bun run dev
 - **Pure Frontend SPA**: No backend required - all processing happens in the browser
 - **Component-Based**: React 19 with TypeScript for type safety
 - **Client-Side Processing**: HTML5 Canvas API for high-quality image compositing
-- **State Persistence**: localStorage for saving images and settings across sessions
+- **State Persistence**: IndexedDB for image blobs, localStorage for metadata only
+- **Error Boundary**: Graceful error handling with user-friendly recovery options
 
 ### Technology Stack
 - **Runtime**: Bun 1.3.6
@@ -77,18 +78,22 @@ bun run dev
 then-and-now/
 ├── src/
 │   ├── components/          # React UI components
-│   │   ├── ImageUploader.tsx
-│   │   ├── Workspace.tsx
-│   │   ├── SettingsPanel.tsx
-│   │   └── ExportButton.tsx
+│   │   ├── ImageWorkspace.tsx    # Interactive preview with zoom/pan
+│   │   ├── SettingsPanel.tsx     # Customization controls
+│   │   ├── ExportButton.tsx      # Canvas export trigger
+│   │   ├── PreviewModal.tsx      # Full preview before export
+│   │   ├── ErrorBoundary.tsx     # Graceful error handling
+│   │   └── ...
 │   ├── hooks/               # Custom React hooks
-│   │   ├── useImageState.ts
-│   │   ├── useLocalStorage.ts
-│   │   └── useCanvasExport.ts
+│   │   ├── useImageState.ts      # IndexedDB + metadata management
+│   │   ├── useLocalStorage.ts    # Generic persistence hook
+│   │   └── useCanvasExport.ts    # Canvas compositing
 │   ├── utils/               # Utility functions
-│   │   ├── canvas.ts        # Canvas processing
-│   │   ├── geometry.ts      # Zoom/pan calculations
-│   │   └── storage.ts       # localStorage helpers
+│   │   ├── canvas.ts             # Canvas processing
+│   │   ├── geometry.ts           # Zoom/pan calculations
+│   │   ├── storage.ts            # localStorage helpers
+│   │   ├── indexedDB.ts          # Blob storage
+│   │   └── imageOptimization.ts  # HEIF, downscaling, validation
 │   ├── types/               # TypeScript definitions
 │   └── styles/              # Global styles
 ├── .kiro/                   # Kiro CLI configuration
@@ -99,26 +104,28 @@ then-and-now/
 ```
 
 ### Key Components
-- **ImageUploader** (`src/components/ImageUploader.tsx`): Handles dual image upload with drag-and-drop
-- **ImageWorkspace** (`src/components/ImageWorkspace.tsx`): Interactive preview with zoom/pan controls
+- **ImageWorkspace** (`src/components/ImageWorkspace.tsx`): Interactive preview with zoom/pan controls using D3
 - **SettingsPanel** (`src/components/SettingsPanel.tsx`): Customization controls for aspect ratio, labels, arrows
 - **ExportButton** (`src/components/ExportButton.tsx`): Canvas-based high-resolution export
 - **PreviewModal** (`src/components/PreviewModal.tsx`): Full-screen preview with real-time composition
+- **ErrorBoundary** (`src/components/ErrorBoundary.tsx`): Catches errors and provides recovery UI
 - **ZoomControls** (`src/components/ZoomControls.tsx`): Zoom in/out buttons with visual feedback
 - **SampleImages** (`src/components/SampleImages.tsx`): Built-in demonstration images
 - **Logo** (`src/components/Logo.tsx`): Animated brand logo component
-- **useImageState** (`src/hooks/useImageState.ts`): Manages image state with localStorage persistence
+- **useImageState** (`src/hooks/useImageState.ts`): Manages image state with IndexedDB blobs + localStorage metadata
 - **useCanvasExport** (`src/hooks/useCanvasExport.ts`): Handles canvas compositing and PNG export
 - **useLocalStorage** (`src/hooks/useLocalStorage.ts`): Generic localStorage persistence hook
 
 ## Deep Dive
 
 ### Image Processing Pipeline
-1. **Upload**: FileReader API loads images as Base64 data URLs
-2. **Preview**: CSS transforms provide smooth 60fps zoom/pan interactions
-3. **Positioning**: Percentage-based coordinates (0-100) for resolution independence
-4. **Export**: Canvas API composites images with precise source cropping
-5. **Download**: Blob API generates and downloads high-quality PNG
+1. **Upload**: Images processed with HEIF conversion (if needed), validation, and optional downscaling
+2. **Storage**: Blobs stored in IndexedDB, metadata in localStorage (~100 bytes per image)
+3. **Preview**: CSS transforms via D3-zoom provide smooth 60fps zoom/pan interactions
+4. **Positioning**: Percentage-based coordinates (0-100) for resolution independence
+5. **EXIF Handling**: `createImageBitmap()` respects mobile camera orientation metadata
+6. **Export**: Canvas API composites images with precise source cropping
+7. **Download**: Blob API generates and downloads high-quality PNG
 
 ### Kiro CLI Integration
 This project was developed using Kiro CLI for AI-assisted development:
@@ -128,9 +135,13 @@ This project was developed using Kiro CLI for AI-assisted development:
 
 ### Performance Optimizations
 - **Separation of Concerns**: Preview uses CSS transforms, export uses Canvas
+- **IndexedDB Storage**: Binary blobs avoid 33% base64 overhead, unlimited quota
 - **Memoization**: React.useMemo for expensive geometry calculations
-- **Debouncing**: localStorage updates debounced during drag operations
-- **File Size Limits**: 10MB per image to prevent memory issues
+- **Debounced Persistence**: Metadata saved only on gesture end, not during drag
+- **Direct Imports**: Tree-shakeable HeroUI imports (`@heroui/button` not `@heroui/react`)
+- **Dynamic HEIF Loading**: 1.3MB converter only loaded when iPhone photos detected
+- **Smart Downscaling**: Large images (100MP+) resized on all devices to prevent crashes
+- **Object URL Management**: Proper creation/revocation prevents memory leaks
 
 ## Troubleshooting
 

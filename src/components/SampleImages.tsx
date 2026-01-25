@@ -1,4 +1,4 @@
-import { Button } from '@heroui/react';
+import { Button } from '@heroui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import sampleBefore from '@/assets/sample-before.jpg';

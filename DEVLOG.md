@@ -1,8 +1,8 @@
 # Development Log - Then & Now
 
 **Project**: Then & Now - Advanced Before & After Comparison Tool  
-**Duration**: January 22, 2026 - January 22, 2026  
-**Total Time**: ~13.75 hours  
+**Duration**: January 22, 2026 - January 25, 2026  
+**Total Time**: ~15.25 hours  
 **Status**: 🚀 **PRODUCTION READY**  
 
 ## Overview
@@ -102,7 +102,7 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
   - **Result**: Users can safely try samples without losing their work
 - **Kiro Usage**: Used `@execute` for systematic bug fixes and testing
 
-### Session 8 (Current) - Final Production Polish [0.75h]
+### Session 8 - Final Production Polish [0.75h]
 - **Activity**: Enhanced mobile Safari localStorage persistence, UX improvements, and production preparation
 - **Issues Addressed**:
   - ✅ **Mobile Safari localStorage**: Improved persistence reliability on iOS devices
@@ -137,6 +137,50 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
   - Implemented memory storage fallback for private browsing mode
   - Clean footer implementation for both desktop and mobile layouts
 - **Kiro Usage**: Systematic debugging, enhancement, and production preparation
+
+### Session 9 (Current) - React Best Practices & Storage Overhaul [1.5h]
+- **Activity**: Comprehensive code review applying Vercel React best practices, migrating to IndexedDB storage, and implementing robust error handling
+- **Major Changes**:
+  - ✅ **IndexedDB Migration**: Moved image blob storage from localStorage to IndexedDB for efficient handling of large images
+  - ✅ **Error Boundary**: Added React Error Boundary component for graceful error handling
+  - ✅ **Bundle Optimization**: Replaced barrel imports (`@heroui/react`) with direct imports (`@heroui/button`, `@heroui/modal`, etc.)
+  - ✅ **Async Parallel Execution**: Changed sequential `await` calls to `Promise.all()` for parallel sample loading
+  - ✅ **Memory Leak Prevention**: Added proper Object URL cleanup on upload failure
+  - ✅ **EXIF Orientation Fix**: Switched to `createImageBitmap()` API which respects EXIF rotation for mobile photos
+  - ✅ **PNG Transparency Preservation**: Downscaling now preserves PNG/WebP format instead of forcing JPEG
+  - ✅ **Safe Data Migration**: Removed aggressive localStorage clearing to prevent data loss on upgrade
+  - ✅ **Immutable State Updates**: Refactored `updateImage` to avoid mutating function parameters
+  - ✅ **Dead Code Removal**: Deleted unused `ImageUploader.tsx` and duplicate `validation.ts`
+  - ✅ **Cached Storage Checks**: Private browsing detection now cached at module level
+  - ✅ **Hoisted Static JSX**: GitHub icon SVG extracted outside component to prevent recreation
+  - ✅ **Conditional Rendering**: Changed `&&` patterns to explicit ternary with `null`
+- **Storage Architecture Overhaul**:
+  - **Problem**: localStorage has 5-10MB quota, base64 images are ~33% larger than binary
+  - **Solution**: IndexedDB for image blobs (unlimited quota), localStorage for tiny metadata only
+  - **Implementation**: New `src/utils/indexedDB.ts` with blob storage, Object URL management
+  - **Metadata Pattern**: Only persist `{ hasStoredBlob, xPos, yPos, zoom }` (~100 bytes per image)
+  - **Hydration**: On load, check metadata flags → load blobs from IndexedDB → create Object URLs
+  - **Self-Healing**: If blob missing but metadata says exists, clear the flag to prevent loops
+- **Error Handling Improvements**:
+  - **Error Boundary**: Catches React render errors, shows friendly message with retry option
+  - **Upload Failures**: Object URLs properly revoked on error to prevent memory leaks
+  - **Storage Failures**: If IndexedDB save fails, metadata marked `hasStoredBlob: false` to prevent desync
+  - **Load Retry**: Failed loads don't set "loaded" flag, allowing retry on next effect run
+- **Bundle Size Improvements**:
+  - **Before**: Single 555KB `ui` chunk from barrel import
+  - **After**: Same size but tree-shakeable with direct imports
+  - **Circular Chunk Fix**: Updated `manualChunks` config to function-based approach
+  - **TypeScript Config**: Added proper Node types and ESM support for Vite config
+- **Image Processing Enhancements**:
+  - **EXIF Rotation**: `createImageBitmap()` respects orientation metadata from mobile cameras
+  - **Transparency**: PNG and WebP files maintain alpha channel when downscaled
+  - **All-Device Downscaling**: Large images (100MP+) now downscaled on desktop too, not just mobile
+  - **Dimension Check**: Only downscale if image exceeds configured max dimensions
+- **Code Quality**:
+  - **Immutable Updates**: `updateImage` creates `finalUpdates` object instead of mutating input
+  - **ESLint Comment**: Documented why `setMetadata` excluded from effect deps (stable reference)
+  - **Consolidated Validation**: Single `validateImageFile` in imageOptimization.ts with device-aware limits
+- **Kiro Usage**: Applied Vercel React best practices skill for systematic code review
 
 ---
 
@@ -228,13 +272,14 @@ Heavy use of Kiro CLI for AI-assisted development, with comprehensive planning a
 
 | Category | Hours | Percentage |
 |----------|-------|------------|
-| Project Setup | 0.25h | 1.8% |
-| Planning & Documentation | 1.5h | 10.9% |
-| Custom Tooling | 0.25h | 1.8% |
-| Implementation | 10.5h | 76.4% |
-| Mobile Enhancements & Polish | 0.75h | 5.5% |
-| Production Preparation | 0.5h | 3.6% |
-| **Total** | **13.75h** | **100%** |
+| Project Setup | 0.25h | 1.6% |
+| Planning & Documentation | 1.5h | 9.8% |
+| Custom Tooling | 0.25h | 1.6% |
+| Implementation | 10.5h | 68.9% |
+| Mobile Enhancements & Polish | 0.75h | 4.9% |
+| Production Preparation | 0.5h | 3.3% |
+| React Best Practices & Storage Overhaul | 1.5h | 9.8% |
+| **Total** | **15.25h** | **100%** |
 
 ---
 

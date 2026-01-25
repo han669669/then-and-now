@@ -1,19 +1,23 @@
 import { useRef, useEffect } from 'react';
 import { select } from 'd3-selection';
 import { zoom as d3Zoom, zoomIdentity, ZoomBehavior } from 'd3-zoom';
-import { Button } from '@heroui/react';
+import { Button } from '@heroui/button';
 import { ZoomControls } from './ZoomControls';
 import type { ImageData } from '@/types/image';
 
 interface Props {
   id: 'then' | 'now';
   imageData: ImageData;
-  onUpdate: (id: 'then' | 'now', updates: Partial<ImageData>) => void;
+  onUpdate: (id: 'then' | 'now', updates: Partial<ImageData>, blob?: Blob, isSample?: boolean) => void;
+  onTransformUpdate: (id: 'then' | 'now', updates: { xPos?: number; yPos?: number; zoom?: number }) => void;
+  onTransformPersist: (id: 'then' | 'now') => void;
   onUpload: (id: 'then' | 'now', file: File) => void;
   onRemove: (id: 'then' | 'now') => void;
 }
 
-export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: Props) {
+export function ImageWorkspace({ id, imageData, onUpdate: _onUpdate, onTransformUpdate, onTransformPersist, onUpload, onRemove }: Props) {
+  // Note: _onUpdate is kept for future use (e.g., updating non-transform properties)
+  void _onUpdate;
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,10 +82,12 @@ export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: 
           return !event.ctrlKey && !event.button;
         })
         .on('zoom', (event) => {
+          // Fix #3: Only update UI during zoom, don't persist to localStorage
           if (!imageRef.current || !containerRef.current) return;
           
           const { transform } = event;
           
+          // Apply visual transform immediately (no state update = no localStorage write)
           select(imageRef.current)
             .style('transform', `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`)
             .style('transform-origin', '0 0');
@@ -99,18 +105,22 @@ export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: 
           const newXPos = Math.max(0, Math.min(100, xPercent));
           const newYPos = Math.max(0, Math.min(100, yPercent));
           
-          // Only update if values actually changed to avoid infinite loops
+          // Only update in-memory state (no localStorage writes during gesture)
           if (
             Math.abs(newZoom - imageData.zoom) > 0.001 ||
             Math.abs(newXPos - imageData.xPos) > 0.1 ||
             Math.abs(newYPos - imageData.yPos) > 0.1
           ) {
-            onUpdate(id, {
+            onTransformUpdate(id, {
               zoom: newZoom,
               xPos: newXPos,
               yPos: newYPos,
             });
           }
+        })
+        .on('end', () => {
+          // Fix #3: Only persist to localStorage when zoom gesture ends
+          onTransformPersist(id);
         });
 
       container.call(zoomBehavior);
@@ -137,7 +147,8 @@ export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: 
       const xPercent = maxOffsetX > 0 ? (-x / maxOffsetX) * 100 : 50;
       const yPercent = maxOffsetY > 0 ? (-y / maxOffsetY) * 100 : 50;
       
-      onUpdate(id, {
+      // Use transform update for initial sync (in-memory only, already persisted from load)
+      onTransformUpdate(id, {
         zoom: safeZoom,
         xPos: Math.max(0, Math.min(100, xPercent)),
         yPos: Math.max(0, Math.min(100, yPercent)),
@@ -246,10 +257,14 @@ export function ImageWorkspace({ id, imageData, onUpdate, onUpload, onRemove }: 
             zoom={safeZoom}
             xPos={imageData.xPos}
             yPos={imageData.yPos}
-            onZoomChange={(zoom) => onUpdate(id, { zoom })}
+            onZoomChange={(zoom) => {
+              onTransformUpdate(id, { zoom });
+              onTransformPersist(id);
+            }}
             onReset={() => {
               // First update the state
-              onUpdate(id, { zoom: 1.0, xPos: 50, yPos: 50 });
+              onTransformUpdate(id, { zoom: 1.0, xPos: 50, yPos: 50 });
+              onTransformPersist(id);
               // Then immediately reset the visual transform
               resetTransform();
             }}

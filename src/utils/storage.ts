@@ -14,22 +14,31 @@ function isLocalStorageAvailable(): boolean {
   }
 }
 
-// Check if we're in Safari private browsing mode
+// Cache for private browsing detection (computed once)
+let privateBrowsingCache: boolean | null = null;
+
+// Check if we're in Safari private browsing mode (cached at module level)
 function isPrivateBrowsing(): boolean {
+  if (privateBrowsingCache !== null) {
+    return privateBrowsingCache;
+  }
+  
   try {
     // In Safari private browsing, localStorage exists but has 0 quota
     localStorage.setItem('__private_test__', '1');
     localStorage.removeItem('__private_test__');
-    return false;
+    privateBrowsingCache = false;
   } catch (e) {
     // QuotaExceededError in private browsing
-    return e instanceof DOMException && (
+    privateBrowsingCache = e instanceof DOMException && (
       e.code === 22 || 
       e.code === 1014 || 
       e.name === 'QuotaExceededError' ||
       e.name === 'NS_ERROR_DOM_QUOTA_REACHED'
     );
   }
+  
+  return privateBrowsingCache;
 }
 
 // In-memory fallback for when localStorage is not available
@@ -104,7 +113,11 @@ export function removeFromLocalStorage(key: string): void {
 }
 
 /**
- * Check storage quota and clear if needed (mobile Safari specific)
+ * Check storage quota - now just logs a warning, doesn't clear aggressively
+ * (Fix #6: Removed aggressive storage clearing that caused intermittent data loss)
+ * 
+ * Note: Images are now stored in IndexedDB, not localStorage.
+ * localStorage only stores small metadata (~100 bytes per image).
  */
 export function checkStorageQuota(): void {
   if (!isLocalStorageAvailable()) return;
@@ -112,27 +125,23 @@ export function checkStorageQuota(): void {
   try {
     // Estimate storage usage
     let totalSize = 0;
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
+    for (const key in localStorage) {
+      if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
         totalSize += localStorage[key].length;
       }
     }
     
-    // If storage is getting full (>2MB on mobile Safari), clear old data
     const sizeMB = totalSize / (1024 * 1024);
-    if (sizeMB > 2) {
-      console.warn(`Storage getting full (${sizeMB.toFixed(1)}MB), clearing old data`);
-      // Keep only the most recent user images and settings
-      const userImages = localStorage.getItem('then-and-now-user-images');
-      const settings = localStorage.getItem('then-and-now-settings');
-      localStorage.clear();
-      if (userImages) {
-        localStorage.setItem('then-and-now-user-images', userImages);
-      }
-      if (settings) {
-        localStorage.setItem('then-and-now-settings', settings);
-      }
+    
+    // Just log a warning - don't clear data automatically
+    if (sizeMB > 4) {
+      console.warn(`localStorage usage: ${sizeMB.toFixed(2)}MB - approaching quota limit`);
     }
+    
+    // Note: Legacy keys 'then-and-now-images' and 'then-and-now-user-images' 
+    // contained base64 images from older versions. We no longer automatically 
+    // delete them to avoid data loss. Users can manually clear browser data 
+    // if storage is an issue. New images are stored in IndexedDB instead.
   } catch (error) {
     console.warn('Storage check failed:', error);
   }

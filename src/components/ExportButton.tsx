@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button } from '@heroui/react';
+import { Button } from '@heroui/button';
 import { PreviewModal } from './PreviewModal';
 import { useCanvasExport } from '@/hooks/useCanvasExport';
 import type { ImageState } from '@/types/image';

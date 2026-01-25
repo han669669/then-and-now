@@ -1,8 +1,9 @@
-import { HeroUIProvider } from '@heroui/react';
+import { HeroUIProvider } from '@heroui/system';
 import { ImageWorkspace } from './components/ImageWorkspace';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ExportButton } from './components/ExportButton';
 import { Logo } from './components/Logo';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useImageState } from './hooks/useImageState';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { processImageFile } from './utils/imageOptimization';
@@ -10,8 +11,14 @@ import type { Settings } from './types/settings';
 import sampleBefore from './assets/sample-before.jpg';
 import sampleAfter from './assets/sample-after.jpg';
 
-export function App() {
-  const { imageState, updateImage, removeImage } = useImageState();
+const GitHubIcon = (
+  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+  </svg>
+);
+
+function AppContent() {
+  const { imageState, updateImage, updateTransform, persistTransform, removeImage, hydrated, hasPersistedImages } = useImageState();
   const [settings, setSettings] = useLocalStorage<Settings>('then-and-now-settings', {
     aspectRatio: 'auto',
     thenLabel: 'Before',
@@ -25,19 +32,28 @@ export function App() {
   };
 
   const handleUpload = async (id: 'then' | 'now', file: File, isSample = false) => {
+    let objectUrl: string | null = null;
     try {
-      // Process image file (includes HEIF conversion and validation)
-      const { file: processedFile, dataUrl } = await processImageFile(file);
+      // Process image file (includes HEIF conversion, validation, and downscaling for large images)
+      const result = await processImageFile(file);
+      objectUrl = result.objectUrl;
       
-      updateImage(id, { 
-        file: processedFile, 
-        dataUrl, 
+      // Update with blob for IndexedDB storage and objectUrl for display
+      await updateImage(id, { 
+        file: file, 
+        objectUrl,
+        dataUrl: objectUrl, // For backwards compatibility with existing components
         xPos: 50, 
         yPos: 50, 
-        zoom: 1.0 
-      }, isSample);
+        zoom: 1.0,
+        hasStoredBlob: !isSample,
+      }, isSample ? undefined : result.blob, isSample);
 
     } catch (error) {
+      // Revoke object URL on failure to prevent memory leak
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
       console.error('Image upload failed:', error);
       alert(error instanceof Error ? error.message : 'Failed to upload image. Please try a different image.');
     }
@@ -55,17 +71,25 @@ export function App() {
       const afterBlob = await afterResponse.blob();
       const afterFile = new File([afterBlob], 'sample-after.jpg', { type: 'image/jpeg' });
       
-      // Update both images as samples (won't overwrite user images in localStorage)
-      await handleUpload('then', beforeFile, true);
-      await handleUpload('now', afterFile, true);
+      // Update both images as samples in parallel (won't overwrite user images in localStorage)
+      await Promise.all([
+        handleUpload('then', beforeFile, true),
+        handleUpload('now', afterFile, true),
+      ]);
     } catch (error) {
       console.error('Failed to load sample images:', error);
       alert('Failed to load sample images. Please try again.');
     }
   };
 
+  // Check if there are currently displayed images
   const hasImages = imageState.then.dataUrl || imageState.now.dataUrl;
-  const showSampleImages = !hasImages; // Show samples when no images are loaded
+  
+  // Only show sample button when:
+  // 1. App has hydrated (loaded persisted data)
+  // 2. No persisted images exist in IndexedDB
+  // 3. No images currently displayed
+  const showSampleImages = hydrated && !hasPersistedImages && !hasImages;
 
   return (
     <HeroUIProvider>
@@ -84,11 +108,11 @@ export function App() {
                   <p className="text-gray-500 text-sm mt-0.5">Instantly create stunning before & after visuals</p>
                 </div>
               </div>
-              {hasImages && (
+              {hasImages ? (
                 <div className="w-full max-w-xs">
                   <ExportButton imageState={imageState} settings={settings} enableKeyboardShortcut={true} />
                 </div>
-              )}
+              ) : null}
             </div>
           </header>
 
@@ -100,6 +124,8 @@ export function App() {
                 id="then"
                 imageData={imageState.then}
                 onUpdate={updateImage}
+                onTransformUpdate={updateTransform}
+                onTransformPersist={persistTransform}
                 onUpload={handleUpload}
                 onRemove={removeImage}
               />
@@ -111,6 +137,8 @@ export function App() {
                 id="now"
                 imageData={imageState.now}
                 onUpdate={updateImage}
+                onTransformUpdate={updateTransform}
+                onTransformPersist={persistTransform}
                 onUpload={handleUpload}
                 onRemove={removeImage}
               />
@@ -138,9 +166,7 @@ export function App() {
                 rel="noopener noreferrer"
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 flex items-center gap-1.5"
               >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
+                {GitHubIcon}
                 View on GitHub
               </a>
             </div>
@@ -161,9 +187,9 @@ export function App() {
                   <p className="text-sm text-gray-500">Before & After</p>
                 </div>
               </div>
-              {hasImages && (
+              {hasImages ? (
                 <ExportButton imageState={imageState} settings={settings} enableKeyboardShortcut={false} />
-              )}
+              ) : null}
             </div>
           </header>
 
@@ -173,6 +199,8 @@ export function App() {
               id="then"
               imageData={imageState.then}
               onUpdate={updateImage}
+              onTransformUpdate={updateTransform}
+              onTransformPersist={persistTransform}
               onUpload={handleUpload}
               onRemove={removeImage}
             />
@@ -181,6 +209,8 @@ export function App() {
               id="now"
               imageData={imageState.now}
               onUpdate={updateImage}
+              onTransformUpdate={updateTransform}
+              onTransformPersist={persistTransform}
               onUpload={handleUpload}
               onRemove={removeImage}
             />
@@ -204,9 +234,7 @@ export function App() {
                 rel="noopener noreferrer"
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 flex items-center gap-1.5"
               >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
+                {GitHubIcon}
                 View on GitHub
               </a>
             </div>
@@ -214,5 +242,14 @@ export function App() {
         </div>
       </div>
     </HeroUIProvider>
+  );
+}
+
+// Wrap the app with ErrorBoundary (Fix #5)
+export function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }

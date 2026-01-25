@@ -1,27 +1,38 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separate vendor libraries
-          vendor: ['react', 'react-dom'],
-          ui: ['@heroui/react', 'framer-motion'],
-          d3: ['d3-selection', 'd3-zoom'],
-          // HEIF converter will be loaded dynamically, so it won't be in main bundle
+        manualChunks: (id) => {
+          // React core - base chunk
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor';
+          }
+          // HeroUI components (direct imports)
+          if (id.includes('node_modules/@heroui/')) {
+            return 'ui';
+          }
+          // Framer Motion
+          if (id.includes('node_modules/framer-motion/')) {
+            return 'ui';
+          }
+          // D3 libraries
+          if (id.includes('node_modules/d3-')) {
+            return 'd3';
+          }
+          // heic2any is dynamically imported, let Vite handle it
         },
       },
     },
-    // Increase chunk size warning limit since we're using code splitting
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 600,
   },
 })
